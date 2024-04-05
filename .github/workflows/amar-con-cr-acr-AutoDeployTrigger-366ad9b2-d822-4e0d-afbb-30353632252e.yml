@@ -1,0 +1,47 @@
+name: Trigger auto deployment for amar-con-cr-acr
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/amar-con-cr-acr-AutoDeployTrigger-366ad9b2-d822-4e0d-afbb-30353632252e.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AMARCONCRACR_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AMARCONCRACR_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AMARCONCRACR_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }} 
+          registryUrl: amarreg2.azurecr.io
+          registryUsername: ${{ secrets.AMARCONCRACR_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.AMARCONCRACR_REGISTRY_PASSWORD }}
+          containerAppName: amar-con-cr-acr
+          resourceGroup: amar-conenv
+          imageToBuild: amarreg2.azurecr.io/amar-con-cr-acr:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
